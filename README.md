@@ -3,6 +3,7 @@ Typer for Kyrenti. Automated logging in, doing tasks and going to the next one. 
 To start:
 ```
 git clone https://github.com/AntonMalynevskyi/Typer.git
+cd Typer
 pip install -r requirments.txt
 typewright install
 python main.py
