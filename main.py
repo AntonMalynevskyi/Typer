@@ -1,11 +1,35 @@
 import time
 import os
-from random import random
+import sys
 
+from random import random
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright, expect
 from pynput.keyboard import Key, Controller
 from dotenv import load_dotenv, set_key
+
+# 1. Set a persistent path for the browser
+# If we don't do this, the .exe will download Chromium into a temporary folder
+# and wipe it when the app closes, forcing a massive download on every launch.
+browser_path = os.path.join(os.path.expanduser("~"), "MyAppBrowsers")
+os.makedirs(browser_path, exist_ok=True)
+os.environ["PLAYWRIGHT_BROWSERS_PATH"] = browser_path
+
+# 2. Programmatically invoke the Playwright installer
+from playwright.__main__ import main as playwright_main
+
+original_argv = sys.argv.copy()
+try:
+    # Spoof the command line arguments to run the installer
+    sys.argv = ["", "install", "chromium"]
+    playwright_main()
+except SystemExit:
+    # playwright_main() calls sys.exit() when it finishes.
+    # We catch it here so it doesn't kill your entire application.
+    pass
+finally:
+    # Restore the original arguments
+    sys.argv = original_argv
 
 #check if .env exists and if it is filled
 if not load_dotenv():
