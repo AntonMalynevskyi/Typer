@@ -63,7 +63,7 @@ page.wait_for_load_state("networkidle")
 
 while True:
     # check if tasks are done and to go to the next page
-    if page.locator('i.fa-check-square-o:visible').count() >= 10:
+    if page.locator('i.fa-thumb-tack:visible').count() == 0:
         number = 0
         index = 0
         url = page.url
