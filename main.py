@@ -1,9 +1,24 @@
 import time
+import os
 from random import random
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright, expect
 from pynput.keyboard import Key, Controller
+from dotenv import load_dotenv, set_key
+
+#check if .env exists and if it is filled
+if not load_dotenv():
+    open(".env", "w").close()
+    load_dotenv(".env")
+
+if not os.getenv("EMAIL"):
+    email = input("Write email: ")
+    set_key(".env", "EMAIL", email)
+
+if not os.getenv("PASSWORD"):
+    password = input("Write password: ")
+    set_key(".env", "PASSWORD", password)
 
 keyboard = Controller()
 playwright = sync_playwright().start()
@@ -12,8 +27,8 @@ page = browser.new_page()
 
 #login
 page.goto("https://sberbank.solocorporate.com/co/sberbank")
-page.locator("#form-email-email").first.fill("budaeva.ma.mi@sberbank.ru")
-page.locator("#form-password-password").first.fill(">:{789456zxkl12")
+page.locator("#form-email-email").first.fill(os.getenv("EMAIL"))
+page.locator("#form-password-password").first.fill(os.getenv("PASSWORD"))
 page.locator("#form-button-login").click()
 page.wait_for_load_state("networkidle")
 
