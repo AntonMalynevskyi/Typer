@@ -18,69 +18,8 @@ os.environ["PLAYWRIGHT_BROWSERS_PATH"] = browser_path
 # 2. Programmatically invoke the Playwright installer
 from playwright.__main__ import main as playwright_main
 
-original_argv = sys.argv.copy()
-try:
-    # Spoof the command line arguments to run the installer
-    sys.argv = ["", "install", "chromium"]
-    playwright_main()
-except SystemExit:
-    # playwright_main() calls sys.exit() when it finishes.
-    # We catch it here so it doesn't kill your entire application.
-    pass
-finally:
-    # Restore the original arguments
-    sys.argv = original_argv
 
-#check if .env exists and if it is filled
-if not load_dotenv():
-    open(".env", "w").close()
-    load_dotenv(".env")
-
-if not os.getenv("EMAIL"):
-    email = input("Write email: ")
-    set_key(".env", "EMAIL", email)
-
-if not os.getenv("PASSWORD"):
-    password = input("Write password: ")
-    set_key(".env", "PASSWORD", password)
-
-keyboard = Controller()
-playwright = sync_playwright().start()
-browser = playwright.chromium.launch(headless=False, args=["--ozone-platform=x11"])
-page = browser.new_page()
-
-#login
-page.goto("https://sberbank.solocorporate.com/co/sberbank")
-page.locator("#form-email-email").first.fill(os.getenv("EMAIL"))
-page.locator("#form-password-password").first.fill(os.getenv("PASSWORD"))
-page.locator("#form-button-login").click()
-page.wait_for_load_state("networkidle")
-
-#go to tasks
-page.get_by_text("Продолжить обучение").click()
-page.wait_for_load_state("networkidle")
-
-
-while True:
-    # check if tasks are done and to go to the next page
-    if page.locator('i.fa-thumb-tack:visible').count() == 0:
-        number = 0
-        index = 0
-        url = page.url
-        parts = url.split("/")
-        for part in parts:
-            if part.isdigit():
-                number = int(part)
-                index = parts.index(part)
-        parts.pop(index)
-        parts.insert(index, str(number+1))
-        url = "/".join(parts)
-        page.goto(url)
-
-    #start doing task
-    page.locator('button:has-text("Выполнить задание"):enabled').last.click()
-    page.wait_for_timeout(1000)
-
+def type():
     soup = BeautifulSoup(page.content(), 'html.parser')
     container = soup.find("div", {"class": "text-prompt-value"})
     texts = container.find_all("p")
@@ -122,15 +61,95 @@ while True:
                 keyboard.release(char)
                 print("Inputted " + symbol)
 
-            time.sleep((random() + 0.1) % 0.3) #time between inputs
+            time.sleep((random() + 0.1) % 0.3)  # time between inputs
 
         except Exception as e:
             print(f"Не удалось нажать символ '{symbol}': {e}")
 
-    time.sleep(2)
-    page.get_by_role("button", name="Продолжить").click()
+
+original_argv = sys.argv.copy()
+try:
+    # Spoof the command line arguments to run the installer
+    sys.argv = ["", "install", "chromium"]
+    playwright_main()
+except SystemExit:
+    # playwright_main() calls sys.exit() when it finishes.
+    # We catch it here so it doesn't kill your entire application.
+    pass
+finally:
+    # Restore the original arguments
+    sys.argv = original_argv
+
+# check if .env exists and if it is filled
+if not load_dotenv():
+    open(".env", "w").close()
+    load_dotenv(".env")
+
+if not os.getenv("EMAIL"):
+    email = input("Write email: ")
+    set_key(".env", "EMAIL", email)
+
+if not os.getenv("PASSWORD"):
+    password = input("Write password: ")
+    set_key(".env", "PASSWORD", password)
+
+keyboard = Controller()
+playwright = sync_playwright().start()
+browser = playwright.chromium.launch(headless=False, args=["--ozone-platform=x11"])
+page = browser.new_page()
+
+# login
+page.goto("https://sberbank.solocorporate.com/co/sberbank")
+page.locator("#form-email-email").first.fill(os.getenv("EMAIL"))
+page.locator("#form-password-password").first.fill(os.getenv("PASSWORD"))
+page.locator("#form-button-login").click()
+page.wait_for_load_state("networkidle")
+
+speed_mode = False
+
+if input("Do you want to use program to pass speed test? [y/n]").lower() == "y":
+    speed_mode = True
+
+if speed_mode:
+    page.get_by_text("Сертификат об обучении").click()
+    page.wait_for_timeout(1500)
+    page.goto("https://sberbank.solocorporate.com/study/rus#ergotest")
+    page.wait_for_timeout(1000)
+
+    type()
+
     time.sleep(2)
 
+else:
+    # go to tasks
+    page.get_by_text("Продолжить обучение").click()
+    page.wait_for_load_state("networkidle")
+
+    while True:
+        # check if tasks are done and to go to the next page
+        if page.locator('i.fa-thumb-tack:visible').count() == 0:
+            number = 0
+            index = 0
+            url = page.url
+            parts = url.split("/")
+            for part in parts:
+                if part.isdigit():
+                    number = int(part)
+                    index = parts.index(part)
+            parts.pop(index)
+            parts.insert(index, str(number + 1))
+            url = "/".join(parts)
+            page.goto(url)
+
+        # start doing task
+        page.locator('button:has-text("Выполнить задание"):enabled').last.click()
+        page.wait_for_timeout(1000)
+
+        type()
+
+        time.sleep(2)
+        page.get_by_role("button", name="Продолжить").click()
+        time.sleep(2)
 
 browser.close()
 playwright.stop()
