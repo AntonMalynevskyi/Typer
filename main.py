@@ -18,8 +18,8 @@ os.environ["PLAYWRIGHT_BROWSERS_PATH"] = browser_path
 # 2. Programmatically invoke the Playwright installer
 from playwright.__main__ import main as playwright_main
 
-
 def type():
+    """Оригинальный метод для обычных заданий"""
     soup = BeautifulSoup(page.content(), 'html.parser')
     container = soup.find("div", {"class": "text-prompt-value"})
     texts = container.find_all("p")
@@ -54,14 +54,60 @@ def type():
                     keyboard.press(char)
                     time.sleep(0.07)
                     keyboard.release(char)
-                    print("Inputted " + symbol)
             else:
                 keyboard.press(char)
                 time.sleep(0.05)
                 keyboard.release(char)
-                print("Inputted " + symbol)
 
             time.sleep((random() + 0.1) % 0.3)  # time between inputs
+
+        except Exception as e:
+            print(f"Не удалось нажать символ '{symbol}': {e}")
+
+def type_speed():
+    """Новый метод специально для speed type с извлечением текста из тегов <b>"""
+    soup = BeautifulSoup(page.content(), 'html.parser')
+    container = soup.find("div", {"class": "text-prompt-value"})
+    texts = container.find_all("p")
+
+    symbols = []
+    for p_tag in texts:
+        # Ищем все теги <b> внутри параграфа (игнорируя <sup> и прочий мусор)
+        b_tags = p_tag.find_all("b")
+        for b_tag in b_tags:
+            # Извлекаем текст и заменяем неразрывные пробелы
+            clean_text = b_tag.get_text().replace('\xa0', ' ')
+            symbols.extend(list(clean_text))
+
+    print(f"Total characters to type (SPEED MODE): {len(symbols)}")
+    print("WARNING: Switch your keyboard layout to RUSSIAN (RU) now!")
+    print("Typing starts in 5 seconds...")
+    time.sleep(5)
+
+    print(symbols)
+
+    for symbol in symbols:
+        if symbol == ' ':
+            keyboard.press(Key.space)
+            time.sleep(0.07)
+            keyboard.release(Key.space)
+            time.sleep(0.08)
+            continue
+
+        char = symbol.lower()
+
+        try:
+            if symbol.isupper():
+                with keyboard.pressed(Key.shift):
+                    keyboard.press(char)
+                    time.sleep(0.07)
+                    keyboard.release(char)
+            else:
+                keyboard.press(char)
+                time.sleep(0.05)
+                keyboard.release(char)
+
+            time.sleep((random() + 0.1) % 0.3)
 
         except Exception as e:
             print(f"Не удалось нажать символ '{symbol}': {e}")
@@ -69,18 +115,13 @@ def type():
 
 original_argv = sys.argv.copy()
 try:
-    # Spoof the command line arguments to run the installer
     sys.argv = ["", "install", "chromium"]
     playwright_main()
 except SystemExit:
-    # playwright_main() calls sys.exit() when it finishes.
-    # We catch it here so it doesn't kill your entire application.
     pass
 finally:
-    # Restore the original arguments
     sys.argv = original_argv
 
-# check if .env exists and if it is filled
 if not load_dotenv():
     open(".env", "w").close()
     load_dotenv(".env")
@@ -88,10 +129,12 @@ if not load_dotenv():
 if not os.getenv("EMAIL"):
     email = input("Write email: ")
     set_key(".env", "EMAIL", email)
+    os.environ["EMAIL"] = email
 
 if not os.getenv("PASSWORD"):
     password = input("Write password: ")
     set_key(".env", "PASSWORD", password)
+    os.environ["PASSWORD"] = password
 
 keyboard = Controller()
 playwright = sync_playwright().start()
@@ -107,7 +150,7 @@ page.wait_for_load_state("networkidle")
 
 speed_mode = False
 
-if input("Do you want to use program to pass speed test? [y/n]").lower() == "y":
+if input("Do you want to use program to pass speed test? [y/n] ").lower() == "y":
     speed_mode = True
 
 if speed_mode:
@@ -116,7 +159,8 @@ if speed_mode:
     page.goto("https://sberbank.solocorporate.com/study/rus#ergotest")
     page.wait_for_timeout(1000)
 
-    type()
+    # Вызываем новую функцию для спидтеста
+    type_speed()
 
     time.sleep(2)
 
