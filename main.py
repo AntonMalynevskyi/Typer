@@ -64,20 +64,22 @@ def type():
         except Exception as e:
             print(f"Не удалось нажать символ '{symbol}': {e}")
 
+
 def type_speed():
-    """Новый метод специально для speed type с извлечением текста из тегов <b>"""
     soup = BeautifulSoup(page.content(), 'html.parser')
     container = soup.find("div", {"class": "text-prompt-value"})
     texts = container.find_all("p")
 
     symbols = []
     for p_tag in texts:
-        # Ищем все теги <b> внутри параграфа (игнорируя <sup> и прочий мусор)
-        b_tags = p_tag.find_all("b")
-        for b_tag in b_tags:
-            # Извлекаем текст и заменяем неразрывные пробелы
-            clean_text = b_tag.get_text().replace('\xa0', ' ')
-            symbols.extend(list(clean_text))
+        # 1. Destroy the <sup> tag so line numbers (1, 2, 3...) aren't typed
+        if p_tag.sup:
+            p_tag.sup.decompose()
+
+        # 2. get_text() pulls the text from ALL remaining tags inside the <p>
+        # It seamlessly merges <b class="nextkey">М</b> and <b>ного</b> into "Много"
+        clean_text = p_tag.get_text().replace('\xa0', ' ')
+        symbols.extend(list(clean_text))
 
     print(f"Total characters to type (SPEED MODE): {len(symbols)}")
     print("WARNING: Switch your keyboard layout to RUSSIAN (RU) now!")
@@ -89,25 +91,17 @@ def type_speed():
     for symbol in symbols:
         if symbol == ' ':
             keyboard.press(Key.space)
-            time.sleep(0.07)
+            time.sleep(0.06)
             keyboard.release(Key.space)
-            time.sleep(0.08)
+            time.sleep(0.07)
             continue
-
-        char = symbol.lower()
-
         try:
-            if symbol.isupper():
-                with keyboard.pressed(Key.shift):
-                    keyboard.press(char)
-                    time.sleep(0.07)
-                    keyboard.release(char)
-            else:
-                keyboard.press(char)
-                time.sleep(0.05)
-                keyboard.release(char)
+            # Передаем символ "как есть" (symbol), pynput сам сымитирует Shift для больших букв
+            keyboard.press(symbol)
+            time.sleep(0.06)
+            keyboard.release(symbol)
 
-            time.sleep((random() + 0.1) % 0.3)
+            time.sleep((random() + 0.1) % 0.15)
 
         except Exception as e:
             print(f"Не удалось нажать символ '{symbol}': {e}")
